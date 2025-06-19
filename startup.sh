@@ -17,5 +17,5 @@ echo "Attempting to initialize database..."
 python -c "import sys; sys.path.insert(0, '.'); from app import init_database; init_database()" 2>/dev/null || echo "Database initialization failed, will retry on first request"
 
 # Start the Flask application
-echo "Starting Flask application on port 8000..."
-gunicorn --bind 0.0.0.0:8000 --workers 2 --timeout 120 --preload app:app
+echo "Starting Flask application..."
+exec gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --preload app:app
