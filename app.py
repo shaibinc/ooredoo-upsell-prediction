@@ -18,7 +18,13 @@ warnings.filterwarnings('ignore')
 app = Flask(__name__)
 
 # Database configuration
-DATABASE = 'ooredoo_customers.db'
+import tempfile
+import os
+# Use a temporary directory for the database in Azure
+if os.environ.get('WEBSITE_SITE_NAME'):  # Running in Azure
+    DATABASE = '/tmp/ooredoo_customers.db'
+else:  # Running locally
+    DATABASE = 'ooredoo_customers.db'
 
 # GPT API Configuration (Azure OpenAI)
 # Note: In production, store these in environment variables or Azure Key Vault
@@ -38,33 +44,80 @@ if GPT_API_ENABLED:
 
 def init_database():
     """Initialize the SQLite database"""
-    conn = sqlite3.connect(DATABASE)
-    cursor = conn.cursor()
+    import os
+    import sqlite3
+    import time
+    
+    print("Attempting to initialize database...")
+    
+    # Always remove existing database to ensure fresh start
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            if os.path.exists(DATABASE):
+                print(f"Removing existing database: {DATABASE} (attempt {attempt + 1})")
+                os.remove(DATABASE)
+                time.sleep(0.1)  # Brief pause to ensure file is released
+                print("Existing database removed successfully")
+            break
+        except OSError as remove_error:
+            print(f"Error removing existing database (attempt {attempt + 1}): {remove_error}")
+            if attempt == max_retries - 1:
+                print("Failed to remove database after all attempts, continuing anyway...")
+            time.sleep(0.5)
+    
+    try:
+        conn = sqlite3.connect(DATABASE)
+        cursor = conn.cursor()
+        print("New database connection established")
+    except sqlite3.Error as e:
+        print(f"Failed to connect to database: {e}")
+        raise
     
     # Create customers table
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS customers (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            customer_id TEXT UNIQUE NOT NULL,
-            age INTEGER NOT NULL,
-            gender TEXT NOT NULL,
-            country TEXT NOT NULL,
-            location TEXT NOT NULL,
-            monthly_spend REAL NOT NULL,
-            data_usage_gb REAL NOT NULL,
-            call_minutes INTEGER NOT NULL,
-            sms_count INTEGER NOT NULL,
-            tenure_months INTEGER NOT NULL,
-            complaint_count INTEGER NOT NULL,
-            payment_method TEXT NOT NULL,
-            current_plan TEXT NOT NULL,
-            upsell_target REAL NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )
-    ''')
-    
-    conn.commit()
-    conn.close()
+    try:
+        cursor.execute('''
+         CREATE TABLE IF NOT EXISTS customers (
+             customer_id INTEGER PRIMARY KEY,
+             age INTEGER,
+             gender TEXT,
+             country TEXT,
+             location TEXT,
+             monthly_spend REAL,
+             data_usage_gb REAL,
+             call_minutes INTEGER,
+             sms_count INTEGER,
+             tenure_months INTEGER,
+             complaint_count INTEGER,
+             payment_method TEXT,
+             current_plan TEXT,
+             upsell_target REAL,
+             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+         )
+         ''')
+        conn.commit()
+        print("Database table created successfully")
+        
+        # Check if table is empty and populate with sample data
+        cursor.execute("SELECT COUNT(*) FROM customers")
+        count = cursor.fetchone()[0]
+        if count == 0:
+            print("Database is empty, generating sample data...")
+            # Create predictor instance and generate sample data
+            predictor = OoreedooUpsellPredictor()
+            sample_data = predictor.generate_sample_data(500)
+            predictor.insert_customers_to_db(sample_data)
+            print(f"Inserted {len(sample_data)} sample customers")
+        else:
+            print(f"Database contains {count} customers")
+            
+    except sqlite3.Error as e:
+        print(f"Error creating database table: {e}")
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+        print("Database initialization completed")
 
 def get_gpt_explanation(customer_data, prediction_prob, recommendation):
     """Generate GPT-powered explanation and marketing recommendation"""
@@ -248,10 +301,9 @@ class OoreedooUpsellPredictor:
         np.random.seed(42)
         
         # Customer demographics
-        customer_ids = [f"CUST_{i:06d}" for i in range(1, n_samples + 1)]
+        customer_ids = list(range(1, n_samples + 1))
         ages = np.random.normal(35, 12, n_samples).astype(int)
         ages = np.clip(ages, 18, 80)
-        
         genders = np.random.choice(['Male', 'Female'], n_samples)
         # Ooredoo operates in 9 countries
         countries = np.random.choice(['Qatar', 'Oman', 'Kuwait', 'Algeria', 'Tunisia', 'Iraq', 'Palestine', 'Maldives', 'Myanmar'], n_samples)
@@ -509,30 +561,50 @@ class OoreedooUpsellPredictor:
         self.feature_columns = model_data['feature_columns']
 
 # Initialize database and predictor
-init_database()
-predictor = OoreedooUpsellPredictor()
+predictor = None
 
-# Train model on startup
-if not os.path.exists('ooredoo_model.pkl'):
-    print("Training new model...")
-    sample_data = predictor.generate_sample_data(2000)
-    predictor.train_model(sample_data)
-    predictor.save_model('ooredoo_model.pkl')
-    print("Model trained and saved!")
-else:
-    print("Loading existing model...")
-    predictor.load_model('ooredoo_model.pkl')
-    print("Model loaded successfully!")
+try:
+    print("Initializing database...")
+    init_database()
+    print("Database initialized successfully!")
+except Exception as e:
+    print(f"Database initialization failed: {e}")
+    print("App will continue, database will be initialized on first request")
+    # Ensure we don't crash the app due to database issues
+    pass
 
-# Check if we need to populate the database with sample data
-customer_count = get_customer_count()
-if customer_count == 0:
-    print("Database is empty. Generating 500 sample customers...")
-    sample_customers = predictor.generate_sample_data(500)
-    rows_inserted = insert_customers_to_db(sample_customers)
-    print(f"Inserted {rows_inserted} customers into the database!")
-else:
-    print(f"Database already contains {customer_count} customers.")
+try:
+    predictor = OoreedooUpsellPredictor()
+    
+    # Train model on startup
+    if not os.path.exists('ooredoo_model.pkl'):
+        print("Training new model...")
+        sample_data = predictor.generate_sample_data(2000)
+        predictor.train_model(sample_data)
+        predictor.save_model('ooredoo_model.pkl')
+        print("Model trained and saved!")
+    else:
+        print("Loading existing model...")
+        predictor.load_model('ooredoo_model.pkl')
+        print("Model loaded successfully!")
+    
+    # Check if we need to populate the database with sample data
+    try:
+        customer_count = get_customer_count()
+        if customer_count == 0:
+            print("Database is empty. Generating 500 sample customers...")
+            sample_customers = predictor.generate_sample_data(500)
+            rows_inserted = insert_customers_to_db(sample_customers)
+            print(f"Inserted {rows_inserted} customers into the database!")
+        else:
+            print(f"Database already contains {customer_count} customers.")
+    except Exception as e:
+        print(f"Failed to populate database: {e}")
+        print("Database will be populated on first request")
+        
+except Exception as e:
+    print(f"Model initialization failed: {e}")
+    print("Model will be initialized on first request")
 
 @app.route('/')
 def index():
@@ -540,7 +612,19 @@ def index():
 
 @app.route('/predict', methods=['POST'])
 def predict():
+    global predictor
     try:
+        # Initialize predictor if not already done
+        if predictor is None:
+            print("Lazy initializing predictor...")
+            predictor = OoreedooUpsellPredictor()
+            if os.path.exists('ooredoo_model.pkl'):
+                predictor.load_model('ooredoo_model.pkl')
+            else:
+                sample_data = predictor.generate_sample_data(2000)
+                predictor.train_model(sample_data)
+                predictor.save_model('ooredoo_model.pkl')
+        
         # Get data from request
         data = request.json
         

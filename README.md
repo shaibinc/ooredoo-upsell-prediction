@@ -90,6 +90,7 @@ A machine learning-powered web application that predicts customer upselling oppo
    ```
 
 4. **Configure GPT API** (optional):
+
    - Copy the configuration from `GPT_API_SETUP_GUIDE.md`
    - Update the API credentials in `app.py`
    - Set `GPT_API_ENABLED = True` to enable GPT features
@@ -349,6 +350,7 @@ oreedoo-upsell-prediction/
 ## Deployment Options
 
 ### 1. Azure App Service (Recommended)
+
 - **GitHub Actions**: Automated CI/CD pipeline
 - **ARM Template**: Infrastructure as Code
 - **Custom Deployment**: Advanced configuration options
@@ -357,11 +359,13 @@ oreedoo-upsell-prediction/
 See [Azure Deployment Guide](AZURE_DEPLOYMENT_GUIDE.md) for detailed instructions.
 
 ### 2. Local Development
+
 - Quick setup for development and testing
 - Full feature access including GPT integration
 - Database viewer and analytics dashboard
 
 ### 3. Docker Deployment
+
 - Containerized deployment (configuration available)
 - Kubernetes support for enterprise scaling
 - Multi-environment deployment
@@ -369,12 +373,14 @@ See [Azure Deployment Guide](AZURE_DEPLOYMENT_GUIDE.md) for detailed instruction
 ## GPT Integration Features
 
 ### 🤖 AI-Powered Insights
+
 - **Natural Language Explanations**: Human-readable prediction reasoning
 - **Marketing Recommendations**: Personalized upselling strategies
 - **Customer Insights**: Behavioral analysis and recommendations
 - **Intelligent Fallbacks**: Graceful degradation when GPT is unavailable
 
 ### 🔧 Configuration Options
+
 - **Azure OpenAI**: Enterprise-grade AI integration
 - **OpenAI API**: Direct API integration
 - **Flexible Models**: Support for GPT-3.5, GPT-4, and custom models
