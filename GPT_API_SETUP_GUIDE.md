@@ -24,9 +24,9 @@ The GPT API integration is currently **disabled by default** and uses intelligen
    # GPT API Configuration
    GPT_API_ENABLED = True  # Enable the integration
    OPENAI_API_TYPE = "azure"
-   OPENAI_API_BASE = "https://upselloreedoo.openai.azure.com/"
+   OPENAI_API_BASE = "https://your-azure-openai-endpoint.openai.azure.com/"
    OPENAI_API_VERSION = "2025-01-01-preview"
-   OPENAI_API_KEY = "3RnTuW94N3FjQQ3ZAf3OQuDVZnUGxBnj9lVrljA2PesMyMIOCLx6JQQJ99BFACYeBjFXJ3w3AAABACOGTvRr"
+   OPENAI_API_KEY = "your-azure-openai-api-key"
    OPENAI_ENGINE = "gpt-4"  # e.g., "gpt-35-turbo"
    ```
 
