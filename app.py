@@ -47,29 +47,39 @@ def init_database():
     import os
     import sqlite3
     import time
+    import tempfile
     
     print("Attempting to initialize database...")
     
-    # Always remove existing database to ensure fresh start
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            if os.path.exists(DATABASE):
-                print(f"Removing existing database: {DATABASE} (attempt {attempt + 1})")
-                os.remove(DATABASE)
-                time.sleep(0.1)  # Brief pause to ensure file is released
-                print("Existing database removed successfully")
-            break
-        except OSError as remove_error:
-            print(f"Error removing existing database (attempt {attempt + 1}): {remove_error}")
-            if attempt == max_retries - 1:
-                print("Failed to remove database after all attempts, continuing anyway...")
-            time.sleep(0.5)
+    # In Azure, always use a fresh temporary database to avoid corruption
+    if os.environ.get('WEBSITE_SITE_NAME'):  # Running in Azure
+        # Create a unique database name to avoid conflicts
+        import uuid
+        db_name = f"ooredoo_customers_{uuid.uuid4().hex[:8]}.db"
+        global DATABASE
+        DATABASE = f"/tmp/{db_name}"
+        print(f"Azure environment detected, using fresh database: {DATABASE}")
+    else:
+        # Local environment - remove existing database
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                if os.path.exists(DATABASE):
+                    print(f"Removing existing database: {DATABASE} (attempt {attempt + 1})")
+                    os.remove(DATABASE)
+                    time.sleep(0.1)  # Brief pause to ensure file is released
+                    print("Existing database removed successfully")
+                break
+            except OSError as remove_error:
+                print(f"Error removing existing database (attempt {attempt + 1}): {remove_error}")
+                if attempt == max_retries - 1:
+                    print("Failed to remove database after all attempts, continuing anyway...")
+                time.sleep(0.5)
     
     try:
         conn = sqlite3.connect(DATABASE)
         cursor = conn.cursor()
-        print("New database connection established")
+        print(f"New database connection established at: {DATABASE}")
     except sqlite3.Error as e:
         print(f"Failed to connect to database: {e}")
         raise
