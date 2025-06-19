@@ -11,10 +11,9 @@ export PYTHONPATH=/home/site/wwwroot
 # Create necessary directories
 mkdir -p /home/site/wwwroot/logs
 
-# Initialize database if it doesn't exist
+# Database will be initialized on first request
 cd /home/site/wwwroot
-echo "Attempting to initialize database..."
-python -c "import sys; sys.path.insert(0, '.'); from app import init_database; init_database()" 2>/dev/null || echo "Database initialization failed, will retry on first request"
+echo "Database will be initialized on first request"
 
 # Start the Flask application
 echo "Starting Flask application..."

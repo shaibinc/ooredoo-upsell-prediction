@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
@@ -13,6 +13,7 @@ import json
 import warnings
 import openai
 import requests
+from flask import Flask, render_template, request, jsonify
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
@@ -23,13 +24,24 @@ import os
 
 # Database configuration
 if os.environ.get('WEBSITE_SITE_NAME'):  # Running in Azure
-    # Use Azure SQL Database
-    USE_AZURE_SQL = True
-    AZURE_SQL_SERVER = os.environ.get('AZURE_SQL_SERVER', 'your-server.database.windows.net')
-    AZURE_SQL_DATABASE = os.environ.get('AZURE_SQL_DATABASE', 'ooredoo-db')
-    AZURE_SQL_USERNAME = os.environ.get('AZURE_SQL_USERNAME', 'your-username')
-    AZURE_SQL_PASSWORD = os.environ.get('AZURE_SQL_PASSWORD', 'your-password')
-    DATABASE = None  # Not used for Azure SQL
+    # Check if Azure SQL credentials are available
+    azure_sql_server = os.environ.get('AZURE_SQL_SERVER')
+    azure_sql_username = os.environ.get('AZURE_SQL_USERNAME')
+    azure_sql_password = os.environ.get('AZURE_SQL_PASSWORD')
+    
+    if azure_sql_server and azure_sql_username and azure_sql_password:
+        # Use Azure SQL Database
+        USE_AZURE_SQL = True
+        AZURE_SQL_SERVER = azure_sql_server
+        AZURE_SQL_DATABASE = os.environ.get('AZURE_SQL_DATABASE', 'ooredoo-db')
+        AZURE_SQL_USERNAME = azure_sql_username
+        AZURE_SQL_PASSWORD = azure_sql_password
+        DATABASE = None  # Not used for Azure SQL
+    else:
+        # Fall back to SQLite if Azure SQL credentials are not available
+        print("Azure SQL credentials not found, falling back to SQLite")
+        USE_AZURE_SQL = False
+        DATABASE = 'ooredoo_customers.db'
 else:  # Running locally
     USE_AZURE_SQL = False
     DATABASE = 'ooredoo_customers.db'
@@ -49,23 +61,42 @@ def get_db_connection():
     """Get database connection for SQLite or Azure SQL Database"""
     global _global_db_connection
     if USE_AZURE_SQL and PYODBC_AVAILABLE:
-        # Azure SQL Database connection
-        connection_string = (
-            f"Driver={{ODBC Driver 18 for SQL Server}};"
-            f"Server=tcp:{AZURE_SQL_SERVER},1433;"
-            f"Database={AZURE_SQL_DATABASE};"
-            f"Uid={AZURE_SQL_USERNAME};"
-            f"Pwd={AZURE_SQL_PASSWORD};"
-            f"Encrypt=yes;"
-            f"TrustServerCertificate=no;"
-            f"Connection Timeout=30;"
-        )
-        return pyodbc.connect(connection_string)
+        try:
+            # Try Azure SQL Database connection
+            if AZURE_SQL_USERNAME and AZURE_SQL_PASSWORD:
+                # Use SQL Server authentication with username/password
+                connection_string = (
+                    f"Driver={{ODBC Driver 18 for SQL Server}};"
+                    f"Server=tcp:{AZURE_SQL_SERVER},1433;"
+                    f"Database={AZURE_SQL_DATABASE};"
+                    f"Uid={AZURE_SQL_USERNAME};"
+                    f"Pwd={AZURE_SQL_PASSWORD};"
+                    f"Encrypt=yes;"
+                    f"TrustServerCertificate=no;"
+                    f"Connection Timeout=30;"
+                )
+            else:
+                # Use Managed Identity authentication
+                connection_string = (
+                    f"Driver={{ODBC Driver 18 for SQL Server}};"
+                    f"Server=tcp:{AZURE_SQL_SERVER},1433;"
+                    f"Database={AZURE_SQL_DATABASE};"
+                    f"Authentication=ActiveDirectoryMsi;"
+                    f"Encrypt=yes;"
+                    f"TrustServerCertificate=no;"
+                    f"Connection Timeout=30;"
+                )
+            return pyodbc.connect(connection_string)
+        except Exception as e:
+            print(f"Failed to connect to Azure SQL Database: {e}")
+            print("Falling back to SQLite database")
+            # Fall back to SQLite
+            return sqlite3.connect('ooredoo_customers.db')
     elif DATABASE == ":memory:" and _global_db_connection:
         return _global_db_connection
     else:
         # SQLite connection for local development
-        return sqlite3.connect(DATABASE)
+        return sqlite3.connect(DATABASE if DATABASE else 'ooredoo_customers.db')
 
 # GPT API Configuration (Azure OpenAI)
 # Note: In production, store these in environment variables or Azure Key Vault
@@ -184,10 +215,10 @@ def init_database():
         if count == 0:
             print("Database is empty, generating sample data...")
             # Create predictor instance and generate sample data
-            predictor = OoreedooUpsellPredictor()
-            sample_data = predictor.generate_sample_data(500)
-            predictor.insert_customers_to_db(sample_data)
-            print(f"Inserted {len(sample_data)} sample customers")
+            temp_predictor = OoreedooUpsellPredictor()
+            sample_data = temp_predictor.generate_sample_data(500)
+            rows_inserted = insert_customers_to_db(sample_data)
+            print(f"Inserted {rows_inserted} sample customers")
         else:
             print(f"Database contains {count} customers")
             
