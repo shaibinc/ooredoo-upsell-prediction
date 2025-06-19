@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ooredoo Customer Upsell Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .card-hover {
+            transition: transform 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+        }
+        .prediction-result {
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .high-probability {
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+            color: white;
+        }
+        .medium-probability {
+            background: linear-gradient(135deg, #FF9800, #F57C00);
+            color: white;
+        }
+        .low-probability {
+            background: linear-gradient(135deg, #f44336, #d32f2f);
+            color: white;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark gradient-bg">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-chart-line me-2"></i>
+                Ooredoo Upsell Predictor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Prediction</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/customer_analysis">Analysis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/database">Database</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="gradient-bg py-5">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold mb-3">
+                <i class="fas fa-users me-3"></i>
+                Customer Upsell Prediction
+            </h1>
+            <p class="lead mb-4">Predict customer upselling opportunities across 9 countries using advanced machine learning</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <div class="row">
+            <!-- Input Form -->
+            <div class="col-lg-8">
+                <div class="card shadow-lg card-hover">
+                    <div class="card-header bg-light">
+                        <h4 class="mb-0">
+                            <i class="fas fa-user-edit me-2"></i>
+                            Customer Information
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="predictionForm">
+                            <div class="row">
+                                <!-- Demographics -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="age" class="form-label">
+                                        <i class="fas fa-birthday-cake me-1"></i>
+                                        Age
+                                    </label>
+                                    <input type="number" class="form-control" id="age" min="18" max="80" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="gender" class="form-label">
+                                        <i class="fas fa-venus-mars me-1"></i>
+                                        Gender
+                                    </label>
+                                    <select class="form-select" id="gender" required>
+                                        <option value="">Select Gender</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="country" class="form-label">
+                                        <i class="fas fa-globe me-1"></i>
+                                        Country
+                                    </label>
+                                    <select class="form-select" id="country" required onchange="updateLocations()">
+                                        <option value="">Select Country</option>
+                                        <option value="Qatar" selected>Qatar</option>
+                                        <option value="Oman">Oman</option>
+                                        <option value="Kuwait">Kuwait</option>
+                                        <option value="Algeria">Algeria</option>
+                                        <option value="Tunisia">Tunisia</option>
+                                        <option value="Iraq">Iraq</option>
+                                        <option value="Palestine">Palestine</option>
+                                        <option value="Maldives">Maldives</option>
+                                        <option value="Myanmar">Myanmar</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="location" class="form-label">
+                                        <i class="fas fa-map-marker-alt me-1"></i>
+                                        Location
+                                    </label>
+                                    <select class="form-select" id="location" required>
+                                        <option value="">Select Location</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="current_plan" class="form-label">
+                                        <i class="fas fa-mobile-alt me-1"></i>
+                                        Current Plan
+                                    </label>
+                                    <select class="form-select" id="current_plan" required>
+                                        <option value="">Select Plan</option>
+                                        <optgroup label="Prepaid Plans (Hala)">
+                                            <option value="Hala Super 40">Hala Super 40</option>
+                                            <option value="Hala Digital">Hala Digital</option>
+                                            <option value="Hala Visitor SIM">Hala Visitor SIM</option>
+                                        </optgroup>
+                                        <optgroup label="Postpaid Plans">
+                                            <option value="Shahry+ Select">Shahry+ Select</option>
+                                            <option value="Shahry+ Go">Shahry+ Go</option>
+                                            <option value="Qatarna+ Pro">Qatarna+ Pro</option>
+                                            <option value="Qatarna+ Premium">Qatarna+ Premium</option>
+                                            <option value="Qatarna+ Al Nokhba">Qatarna+ Al Nokhba</option>
+                                        </optgroup>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Usage Patterns -->
+                            <h5 class="mt-4 mb-3">
+                                <i class="fas fa-chart-bar me-2"></i>
+                                Usage Patterns
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="monthly_spend" class="form-label">
+                                        <i class="fas fa-dollar-sign me-1"></i>
+                                        Monthly Spend (QAR)
+                                    </label>
+                                    <input type="number" class="form-control" id="monthly_spend" step="0.01" min="0" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="data_usage_gb" class="form-label">
+                                        <i class="fas fa-wifi me-1"></i>
+                                        Data Usage (GB)
+                                    </label>
+                                    <input type="number" class="form-control" id="data_usage_gb" step="0.1" min="0" required>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="call_minutes" class="form-label">
+                                        <i class="fas fa-phone me-1"></i>
+                                        Call Minutes
+                                    </label>
+                                    <input type="number" class="form-control" id="call_minutes" min="0" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="sms_count" class="form-label">
+                                        <i class="fas fa-sms me-1"></i>
+                                        SMS Count
+                                    </label>
+                                    <input type="number" class="form-control" id="sms_count" min="0" required>
+                                </div>
+                            </div>
+
+                            <!-- Customer Behavior -->
+                            <h5 class="mt-4 mb-3">
+                                <i class="fas fa-user-clock me-2"></i>
+                                Customer Behavior
+                            </h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="tenure_months" class="form-label">
+                                        <i class="fas fa-calendar-alt me-1"></i>
+                                        Tenure (Months)
+                                    </label>
+                                    <input type="number" class="form-control" id="tenure_months" min="1" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label for="complaint_count" class="form-label">
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        Complaint Count
+                                    </label>
+                                    <input type="number" class="form-control" id="complaint_count" min="0" required>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="payment_method" class="form-label">
+                                        <i class="fas fa-credit-card me-1"></i>
+                                        Payment Method
+                                    </label>
+                                    <select class="form-select" id="payment_method" required>
+                                        <option value="">Select Payment Method</option>
+                                        <option value="Credit Card">Credit Card</option>
+                                        <option value="Bank Transfer">Bank Transfer</option>
+                                        <option value="Cash">Cash</option>
+                                        <option value="Mobile Payment">Mobile Payment</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="fas fa-magic me-2"></i>
+                                    Predict Upsell Opportunity
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="loadSampleData()">
+                                    <i class="fas fa-file-import me-2"></i>
+                                    Load Sample Data
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="col-lg-4">
+                <div class="card shadow-lg card-hover">
+                    <div class="card-header bg-light">
+                        <h4 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Prediction Results
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div id="loadingSpinner" class="text-center d-none">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Analyzing customer data...</p>
+                        </div>
+                        
+                        <div id="predictionResults" class="d-none">
+                            <div id="resultCard" class="prediction-result text-center">
+                                <h3 id="probabilityScore" class="mb-3"></h3>
+                                <h5 id="recommendation" class="mb-3"></h5>
+                                <p id="resultDescription"></p>
+                                
+                                <!-- GPT Insights Section -->
+                                <div class="mt-4 p-3 bg-light rounded">
+                                    <h6 class="text-primary mb-2">
+                                        <i class="fas fa-brain me-2"></i>AI Insights
+                                    </h6>
+                                    <p id="gptExplanation" class="mb-2 text-start text-primary"></p>
+                                </div>
+                                
+                                <div class="mt-3 p-3 bg-success bg-opacity-10 rounded">
+                                    <h6 class="text-success mb-2">
+                                        <i class="fas fa-bullhorn me-2"></i>Marketing Recommendation
+                                    </h6>
+                                    <p id="marketingSuggestion" class="mb-0 text-start fw-bold"></p>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <small class="text-muted" id="timestamp"></small>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="noResults" class="text-center text-muted">
+                            <i class="fas fa-chart-line fa-3x mb-3 opacity-50"></i>
+                            <p>Enter customer information and click predict to see upsell probability</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tips Card -->
+                <div class="card shadow-lg card-hover mt-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            Upselling Tips
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="list-unstyled">
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                High data usage indicates premium plan potential
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Long tenure customers are more likely to upgrade
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Low complaint count suggests satisfaction
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check-circle text-success me-2"></i>
+                                Higher spending indicates willingness to pay more
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="gradient-bg text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">
+                <i class="fas fa-brain me-2"></i>
+                Powered by Machine Learning | Ooredoo Customer Analytics Platform | Serving 9 Countries
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Show loading spinner
+            document.getElementById('loadingSpinner').classList.remove('d-none');
+            document.getElementById('predictionResults').classList.add('d-none');
+            document.getElementById('noResults').classList.add('d-none');
+            
+            // Collect form data
+                const formData = {
+                    age: parseInt(document.getElementById('age').value),
+                    gender: document.getElementById('gender').value,
+                    country: document.getElementById('country').value,
+                    location: document.getElementById('location').value,
+                    monthly_spend: parseFloat(document.getElementById('monthly_spend').value),
+                    data_usage_gb: parseFloat(document.getElementById('data_usage_gb').value),
+                    call_minutes: parseInt(document.getElementById('call_minutes').value),
+                    sms_count: parseInt(document.getElementById('sms_count').value),
+                    tenure_months: parseInt(document.getElementById('tenure_months').value),
+                    complaint_count: parseInt(document.getElementById('complaint_count').value),
+                    payment_method: document.getElementById('payment_method').value,
+                    current_plan: document.getElementById('current_plan').value
+                };
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayResults(result);
+                } else {
+                    throw new Error(result.error || 'Prediction failed');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                document.getElementById('loadingSpinner').classList.add('d-none');
+            }
+        });
+        
+        function displayResults(result) {
+            const probability = (result.probability * 100).toFixed(1);
+            const recommendation = result.recommendation;
+            
+            document.getElementById('probabilityScore').textContent = probability + '%';
+            document.getElementById('recommendation').textContent = recommendation + ' Priority';
+            
+            // Set result description and styling
+            const resultCard = document.getElementById('resultCard');
+            const resultDescription = document.getElementById('resultDescription');
+            
+            if (recommendation === 'High') {
+                resultCard.className = 'prediction-result text-center high-probability';
+                resultDescription.textContent = 'Excellent upsell candidate! This customer shows strong indicators for upgrading to a premium plan.';
+            } else if (recommendation === 'Medium') {
+                resultCard.className = 'prediction-result text-center medium-probability';
+                resultDescription.textContent = 'Moderate upsell potential. Consider targeted offers or incentives to encourage upgrade.';
+            } else {
+                resultCard.className = 'prediction-result text-center low-probability';
+                resultDescription.textContent = 'Low upsell probability. Focus on customer satisfaction and retention strategies.';
+            }
+            
+            // Display GPT insights and marketing recommendations
+            if (result.explanation) {
+                document.getElementById('gptExplanation').textContent = result.explanation;
+            } else {
+                document.getElementById('gptExplanation').textContent = 'AI analysis based on customer behavior patterns and usage data.';
+            }
+            
+            if (result.marketing_suggestion) {
+                document.getElementById('marketingSuggestion').textContent = result.marketing_suggestion;
+            } else {
+                document.getElementById('marketingSuggestion').textContent = 'Contact customer with personalized offers based on their profile.';
+            }
+            
+            document.getElementById('timestamp').textContent = 'Predicted at: ' + new Date().toLocaleString();
+            document.getElementById('predictionResults').classList.remove('d-none');
+        }
+        
+        // Country-Location mapping
+        const countryLocations = {
+            'Qatar': ['Doha', 'Al Rayyan', 'Al Wakrah', 'Al Khor', 'Umm Salal'],
+            'Oman': ['Muscat', 'Salalah', 'Nizwa', 'Sur', 'Sohar'],
+            'Kuwait': ['Kuwait City', 'Hawalli', 'Farwaniya', 'Ahmadi', 'Jahra'],
+            'Algeria': ['Algiers', 'Oran', 'Constantine', 'Annaba', 'Blida'],
+            'Tunisia': ['Tunis', 'Sfax', 'Sousse', 'Kairouan', 'Bizerte'],
+            'Iraq': ['Baghdad', 'Basra', 'Mosul', 'Erbil', 'Najaf'],
+            'Palestine': ['Gaza', 'Ramallah', 'Hebron', 'Nablus', 'Bethlehem'],
+            'Maldives': ['Male', 'Addu City', 'Fuvahmulah', 'Kulhudhuffushi', 'Thinadhoo'],
+            'Myanmar': ['Yangon', 'Mandalay', 'Naypyidaw', 'Mawlamyine', 'Bago']
+        };
+
+        function updateLocations() {
+            const countrySelect = document.getElementById('country');
+            const locationSelect = document.getElementById('location');
+            const selectedCountry = countrySelect.value;
+            
+            // Clear existing options
+            locationSelect.innerHTML = '<option value="">Select Location</option>';
+            
+            if (selectedCountry && countryLocations[selectedCountry]) {
+                countryLocations[selectedCountry].forEach(location => {
+                    const option = document.createElement('option');
+                    option.value = location;
+                    option.textContent = location;
+                    // Set Doha as default for Qatar
+                    if (selectedCountry === 'Qatar' && location === 'Doha') {
+                        option.selected = true;
+                    }
+                    locationSelect.appendChild(option);
+                });
+            }
+        }
+
+        // Initialize locations on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateLocations();
+        });
+
+        async function loadSampleData() {
+            try {
+                const response = await fetch('/api/sample_data');
+                const sampleData = await response.json();
+                
+                // Fill form with sample data
+                Object.keys(sampleData).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.value = sampleData[key];
+                    }
+                });
+                
+                // Update locations after setting country
+                updateLocations();
+                
+                alert('Sample data loaded successfully!');
+            } catch (error) {
+                alert('Error loading sample data: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

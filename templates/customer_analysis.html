@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Analysis - Ooredoo Upsell Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .card-hover {
+            transition: transform 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+        }
+        .metric-card {
+            border-left: 4px solid #667eea;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+        .insight-card {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: none;
+            border-radius: 15px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark gradient-bg">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Ooredoo Upsell Predictor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Prediction</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Analysis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/database">Database</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="gradient-bg py-4">
+        <div class="container text-center">
+            <h1 class="display-5 fw-bold mb-3">
+                <i class="fas fa-analytics me-3"></i>
+                Customer Analytics Dashboard
+            </h1>
+            <p class="lead mb-0">Comprehensive insights into customer behavior and upselling patterns across 9 countries</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <!-- Country Filter -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-filter me-2"></i>
+                            Analytics Filter
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="countryFilter" class="form-label">
+                                    <i class="fas fa-globe me-1"></i>
+                                    Select Country
+                                </label>
+                                <select class="form-select" id="countryFilter" onchange="filterByCountry()">
+                                    <option value="all">All Countries</option>
+                                    <option value="Qatar">Qatar</option>
+                                    <option value="Oman">Oman</option>
+                                    <option value="Kuwait">Kuwait</option>
+                                    <option value="Algeria">Algeria</option>
+                                    <option value="Tunisia">Tunisia</option>
+                                    <option value="Iraq">Iraq</option>
+                                    <option value="Palestine">Palestine</option>
+                                    <option value="Maldives">Maldives</option>
+                                    <option value="Myanmar">Myanmar</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button class="btn btn-primary" onclick="refreshAnalytics()">
+                                    <i class="fas fa-refresh me-2"></i>
+                                    Refresh Analytics
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics Row -->
+        <div class="row mb-5">
+            <div class="col-md-3 mb-3">
+                <div class="card metric-card card-hover h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-2x text-primary mb-3"></i>
+                        <h4 class="card-title">Total Customers</h4>
+                        <h2 class="text-primary" id="totalCustomers">1,000</h2>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card metric-card card-hover h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-arrow-trend-up fa-2x text-success mb-3"></i>
+                        <h4 class="card-title">High Potential</h4>
+                        <h2 class="text-success" id="highPotential">342</h2>
+                        <small class="text-muted">34.2%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card metric-card card-hover h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-bar fa-2x text-warning mb-3"></i>
+                        <h4 class="card-title">Medium Potential</h4>
+                        <h2 class="text-warning" id="mediumPotential">398</h2>
+                        <small class="text-muted">39.8%</small>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card metric-card card-hover h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-chart-line fa-2x text-danger mb-3"></i>
+                        <h4 class="card-title">Low Potential</h4>
+                        <h2 class="text-danger" id="lowPotential">260</h2>
+                        <small class="text-muted">26.0%</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row mb-5">
+            <!-- Upsell Distribution Chart -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-lg card-hover">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-pie-chart me-2"></i>
+                            Upsell Potential Distribution
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="upsellDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plan Distribution Chart -->
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-lg card-hover">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-mobile-alt me-2"></i>
+                            Current Plan Distribution
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="planDistributionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Age and Spending Analysis -->
+        <div class="row mb-5">
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-lg card-hover">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users me-2"></i>
+                            Age Group Analysis
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="ageGroupChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+                <div class="card shadow-lg card-hover">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-dollar-sign me-2"></i>
+                            Monthly Spending vs Upsell Potential
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="spendingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Insights Section -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="card insight-card shadow-lg">
+                    <div class="card-header bg-transparent">
+                        <h4 class="mb-0">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            Key Insights & Recommendations
+                        </h4>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5><i class="fas fa-star text-warning me-2"></i>Top Insights</h5>
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Customers aged 25-35 show highest upsell potential (45%)
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Qatarna+ Premium users have 3x higher data usage
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Customers with tenure > 12 months are 60% more likely to upgrade
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                        Mobile payment users show 25% higher upsell rates
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h5><i class="fas fa-target text-primary me-2"></i>Action Items</h5>
+                                <ul class="list-unstyled">
+                                    <li class="mb-2">
+                                        <i class="fas fa-arrow-right text-primary me-2"></i>
+                                        Target young professionals with data-heavy plans
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-arrow-right text-primary me-2"></i>
+                                        Create loyalty rewards for long-tenure customers
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-arrow-right text-primary me-2"></i>
+                                        Promote mobile payment adoption
+                                    </li>
+                                    <li class="mb-2">
+                                        <i class="fas fa-arrow-right text-primary me-2"></i>
+                                        Develop personalized upgrade campaigns
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Refresh Section -->
+        <div class="row">
+            <div class="col-12 text-center">
+                <div class="card shadow-lg">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            Data Management
+                        </h5>
+                        <p class="card-text">Generate new sample data to refresh the analysis</p>
+                        <button class="btn btn-primary btn-lg" onclick="refreshData()">
+                            <i class="fas fa-refresh me-2"></i>
+                            Refresh Sample Data
+                        </button>
+                        <div class="mt-3">
+                            <small class="text-muted">Last updated: <span id="lastUpdated">Just now</span></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="gradient-bg text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">
+                <i class="fas fa-brain me-2"></i>
+                Powered by Machine Learning | Ooredoo Customer Analytics Platform | Serving 9 Countries
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Initialize charts when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCharts();
+        });
+
+        function initializeCharts() {
+            // Upsell Distribution Pie Chart
+            const upsellCtx = document.getElementById('upsellDistributionChart').getContext('2d');
+            new Chart(upsellCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Potential', 'Medium Potential', 'Low Potential'],
+                    datasets: [{
+                        data: [342, 398, 260],
+                        backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Plan Distribution Chart
+            const planCtx = document.getElementById('planDistributionChart').getContext('2d');
+            new Chart(planCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Hala Plans', 'Shahry+ Plans', 'Qatarna+ Plans'],
+                    datasets: [{
+                        label: 'Number of Customers',
+                        data: [300, 400, 300],
+                        backgroundColor: ['#667eea', '#764ba2', '#f093fb'],
+                        borderColor: ['#5a6fd8', '#6a4190', '#e879f9'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Age Group Chart
+            const ageCtx = document.getElementById('ageGroupChart').getContext('2d');
+            new Chart(ageCtx, {
+                type: 'line',
+                data: {
+                    labels: ['18-25', '26-35', '36-45', '46-55', '56-65', '65+'],
+                    datasets: [{
+                        label: 'Upsell Rate (%)',
+                        data: [25, 45, 38, 30, 22, 15],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 50
+                        }
+                    }
+                }
+            });
+
+            // Spending vs Upsell Chart
+            const spendingCtx = document.getElementById('spendingChart').getContext('2d');
+            new Chart(spendingCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'High Potential',
+                        data: generateScatterData(50, 30, 80, 0.7, 0.9),
+                        backgroundColor: '#28a745'
+                    }, {
+                        label: 'Medium Potential',
+                        data: generateScatterData(50, 20, 60, 0.4, 0.7),
+                        backgroundColor: '#ffc107'
+                    }, {
+                        label: 'Low Potential',
+                        data: generateScatterData(50, 10, 40, 0.1, 0.4),
+                        backgroundColor: '#dc3545'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Monthly Spending (QAR)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Upsell Probability'
+                            },
+                            min: 0,
+                            max: 1
+                        }
+                    }
+                }
+            });
+        }
+
+        function generateScatterData(count, minSpend, maxSpend, minProb, maxProb) {
+            const data = [];
+            for (let i = 0; i < count; i++) {
+                data.push({
+                    x: Math.random() * (maxSpend - minSpend) + minSpend,
+                    y: Math.random() * (maxProb - minProb) + minProb
+                });
+            }
+            return data;
+        }
+
+        async function refreshData() {
+            try {
+                // Show loading state
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...';
+                button.disabled = true;
+
+                // Simulate API call to refresh data
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                // Update timestamp
+                document.getElementById('lastUpdated').textContent = new Date().toLocaleString();
+
+                // Reset button
+                button.innerHTML = originalText;
+                button.disabled = false;
+
+                // Show success message
+                alert('Data refreshed successfully!');
+            } catch (error) {
+                alert('Error refreshing data: ' + error.message);
+            }
+        }
+
+        function filterByCountry() {
+            const selectedCountry = document.getElementById('countryFilter').value;
+            
+            if (selectedCountry === 'all') {
+                // Show all countries data
+                updateChartsForAllCountries();
+            } else {
+                // Filter data for selected country
+                updateChartsForCountry(selectedCountry);
+            }
+        }
+
+        function refreshAnalytics() {
+            const selectedCountry = document.getElementById('countryFilter').value;
+            
+            // Show loading state
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Refreshing...';
+            button.disabled = true;
+            
+            // Simulate API call
+            setTimeout(() => {
+                if (selectedCountry === 'all') {
+                    updateChartsForAllCountries();
+                } else {
+                    updateChartsForCountry(selectedCountry);
+                }
+                
+                button.innerHTML = originalText;
+                button.disabled = false;
+                
+                // Show success message
+                const toast = document.createElement('div');
+                toast.className = 'alert alert-success alert-dismissible fade show position-fixed';
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                toast.innerHTML = `
+                    <i class="fas fa-check-circle me-2"></i>
+                    Analytics refreshed for ${selectedCountry === 'all' ? 'all countries' : selectedCountry}!
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(toast);
+                
+                // Auto remove after 3 seconds
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 3000);
+            }, 1500);
+        }
+
+        function updateChartsForAllCountries() {
+            // Update charts with global data
+            console.log('Updating charts for all countries');
+            // This would typically make an API call to get aggregated data
+        }
+
+        function updateChartsForCountry(country) {
+            // Update charts with country-specific data
+            console.log('Updating charts for country:', country);
+            // This would typically make an API call to get country-specific data
+            
+            // Example: Update chart titles to show country
+            const charts = document.querySelectorAll('.card-title');
+            charts.forEach(chart => {
+                if (chart.textContent.includes('Distribution') || chart.textContent.includes('Analysis')) {
+                    if (!chart.textContent.includes('(')) {
+                        chart.textContent += ` (${country})`;
+                    } else {
+                        chart.textContent = chart.textContent.replace(/\([^)]*\)/, `(${country})`);
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

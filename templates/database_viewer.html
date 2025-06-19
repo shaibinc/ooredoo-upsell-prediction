@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Database - Ooredoo Upsell Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .card-hover {
+            transition: transform 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+        }
+        .table-responsive {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+        }
+        .high-potential {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .low-potential {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark gradient-bg">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-chart-line me-2"></i>
+                Ooredoo Upsell Predictor
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/">Prediction</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/customer_analysis">Analysis</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Database</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="gradient-bg py-4">
+        <div class="container text-center">
+            <h1 class="display-5 fw-bold mb-3">
+                <i class="fas fa-database me-3"></i>
+                Customer Database
+            </h1>
+            <p class="lead mb-0">View and manage customer data stored in the database</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="container my-5">
+        <!-- Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="card text-center card-hover">
+                    <div class="card-body">
+                        <i class="fas fa-users fa-2x text-primary mb-2"></i>
+                        <h5>Total Customers</h5>
+                        <h3 id="totalCustomers" class="text-primary">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center card-hover">
+                    <div class="card-body">
+                        <i class="fas fa-arrow-up fa-2x text-success mb-2"></i>
+                        <h5>High Potential</h5>
+                        <h3 id="highPotential" class="text-success">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center card-hover">
+                    <div class="card-body">
+                        <i class="fas fa-dollar-sign fa-2x text-warning mb-2"></i>
+                        <h5>Avg Monthly Spend</h5>
+                        <h3 id="avgSpend" class="text-warning">-</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="card text-center card-hover">
+                    <div class="card-body">
+                        <i class="fas fa-wifi fa-2x text-info mb-2"></i>
+                        <h5>Avg Data Usage</h5>
+                        <h3 id="avgData" class="text-info">-</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Country Filter -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">
+                            <i class="fas fa-filter me-2"></i>
+                            Database Filter
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="countryFilter" class="form-label">
+                                    <i class="fas fa-globe me-1"></i>
+                                    Filter by Country
+                                </label>
+                                <select class="form-select" id="countryFilter" onchange="filterCustomersByCountry()">
+                                    <option value="all">All Countries</option>
+                                    <option value="Qatar">Qatar</option>
+                                    <option value="Oman">Oman</option>
+                                    <option value="Kuwait">Kuwait</option>
+                                    <option value="Algeria">Algeria</option>
+                                    <option value="Tunisia">Tunisia</option>
+                                    <option value="Iraq">Iraq</option>
+                                    <option value="Palestine">Palestine</option>
+                                    <option value="Maldives">Maldives</option>
+                                    <option value="Myanmar">Myanmar</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button class="btn btn-info" onclick="applyCountryFilter()">
+                                    <i class="fas fa-search me-2"></i>
+                                    Apply Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h5 class="card-title">Database Actions</h5>
+                        <button class="btn btn-primary me-2" onclick="loadCustomers()">
+                            <i class="fas fa-refresh me-2"></i>Refresh Data
+                        </button>
+                        <button class="btn btn-success me-2" onclick="generateNewCustomers()">
+                            <i class="fas fa-plus me-2"></i>Generate 100 New Customers
+                        </button>
+                        <button class="btn btn-info me-2" onclick="predictAllCustomers()">
+                            <i class="fas fa-magic me-2"></i>Predict All Customers
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportData()">
+                            <i class="fas fa-download me-2"></i>Export Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Customer Table -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-lg">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fas fa-table me-2"></i>
+                            Customer Data
+                            <span class="badge bg-primary ms-2" id="customerCount">0</span>
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="loadingSpinner" class="text-center p-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading customer data...</p>
+                        </div>
+                        
+                        <div class="table-responsive" id="customerTable" style="display: none;">
+                            <table class="table table-striped table-hover mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Customer ID</th>
+                                        <th>Age</th>
+                                        <th>Gender</th>
+                                        <th>Location</th>
+                                        <th>Plan</th>
+                                        <th>Monthly Spend</th>
+                                        <th>Data Usage (GB)</th>
+                                        <th>Tenure (Months)</th>
+                                        <th>Upsell Target</th>
+                                        <th>Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="customerTableBody">
+                                    <!-- Customer data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="gradient-bg text-white py-4 mt-5">
+        <div class="container text-center">
+            <p class="mb-0">
+                <i class="fas fa-brain me-2"></i>
+                Powered by Machine Learning | Ooredoo Customer Analytics Platform | Serving 9 Countries
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCustomers();
+            loadStats();
+        });
+
+        async function loadCustomers() {
+            try {
+                document.getElementById('loadingSpinner').style.display = 'block';
+                document.getElementById('customerTable').style.display = 'none';
+                
+                const response = await fetch('/api/customers');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    allCustomers = data.customers; // Store for filtering
+                    displayCustomers(data.customers);
+                    document.getElementById('customerCount').textContent = data.total_count;
+                } else {
+                    throw new Error(data.error || 'Failed to load customers');
+                }
+            } catch (error) {
+                alert('Error loading customers: ' + error.message);
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+                document.getElementById('customerTable').style.display = 'block';
+            }
+        }
+
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/customers/stats');
+                const stats = await response.json();
+                
+                if (response.ok) {
+                    document.getElementById('totalCustomers').textContent = stats.total_customers;
+                    document.getElementById('highPotential').textContent = stats.high_potential;
+                    document.getElementById('avgSpend').textContent = 'QAR ' + stats.avg_monthly_spend.toFixed(2);
+                    document.getElementById('avgData').textContent = stats.avg_data_usage.toFixed(1) + ' GB';
+                }
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        function displayCustomers(customers) {
+            const tbody = document.getElementById('customerTableBody');
+            tbody.innerHTML = '';
+            
+            customers.forEach(customer => {
+                const row = document.createElement('tr');
+                const upsellClass = customer.upsell_target === 1 ? 'high-potential' : 'low-potential';
+                const upsellText = customer.upsell_target === 1 ? 'High' : 'Low';
+                const createdDate = new Date(customer.created_at).toLocaleDateString();
+                
+                row.innerHTML = `
+                    <td><strong>${customer.customer_id}</strong></td>
+                    <td>${customer.age}</td>
+                    <td>${customer.gender}</td>
+                    <td>${customer.location}</td>
+                    <td><span class="badge bg-secondary">${customer.current_plan}</span></td>
+                    <td>QAR ${customer.monthly_spend.toFixed(2)}</td>
+                    <td>${customer.data_usage_gb.toFixed(1)} GB</td>
+                    <td>${customer.tenure_months}</td>
+                    <td><span class="badge ${upsellClass}">${upsellText}</span></td>
+                    <td>${createdDate}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        async function generateNewCustomers() {
+            try {
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+                button.disabled = true;
+
+                const response = await fetch('/api/customers/generate', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(result.message);
+                    loadCustomers();
+                    loadStats();
+                } else {
+                    throw new Error(result.error || 'Failed to generate customers');
+                }
+            } catch (error) {
+                alert('Error generating customers: ' + error.message);
+            } finally {
+                const button = event.target;
+                button.innerHTML = '<i class="fas fa-plus me-2"></i>Generate 100 New Customers';
+                button.disabled = false;
+            }
+        }
+
+        async function predictAllCustomers() {
+            try {
+                const button = event.target;
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Predicting...';
+                button.disabled = true;
+
+                const response = await fetch('/api/customers/predict-batch', {
+                    method: 'POST'
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    const message = `Predictions completed!\n\nHigh Priority: ${result.high_priority}\nMedium Priority: ${result.medium_priority}\nLow Priority: ${result.low_priority}\nTotal Customers: ${result.total_customers}`;
+                    alert(message);
+                } else {
+                    throw new Error(result.error || 'Failed to predict customers');
+                }
+            } catch (error) {
+                alert('Error predicting customers: ' + error.message);
+            } finally {
+                const button = event.target;
+                button.innerHTML = '<i class="fas fa-magic me-2"></i>Predict All Customers';
+                button.disabled = false;
+            }
+        }
+
+        async function exportData() {
+            try {
+                const response = await fetch('/api/customers');
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const csvContent = convertToCSV(data.customers);
+                    downloadCSV(csvContent, 'ooredoo_customers.csv');
+                } else {
+                    throw new Error(data.error || 'Failed to export data');
+                }
+            } catch (error) {
+                alert('Error exporting data: ' + error.message);
+            }
+        }
+
+        function convertToCSV(customers) {
+            if (customers.length === 0) return '';
+            
+            const headers = Object.keys(customers[0]);
+            const csvRows = [headers.join(',')];
+            
+            customers.forEach(customer => {
+                const values = headers.map(header => {
+                    const value = customer[header];
+                    return typeof value === 'string' ? `"${value}"` : value;
+                });
+                csvRows.push(values.join(','));
+            });
+            
+            return csvRows.join('\n');
+        }
+
+        function downloadCSV(csvContent, filename) {
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        let allCustomers = []; // Store all customers for filtering
+
+        function filterCustomersByCountry() {
+            const selectedCountry = document.getElementById('countryFilter').value;
+            
+            if (selectedCountry === 'all') {
+                displayCustomers(allCustomers);
+                updateStatsForCustomers(allCustomers);
+            } else {
+                const filteredCustomers = allCustomers.filter(customer => 
+                    customer.location === selectedCountry
+                );
+                displayCustomers(filteredCustomers);
+                updateStatsForCustomers(filteredCustomers);
+            }
+            
+            // Update customer count badge
+            const displayedCount = selectedCountry === 'all' ? allCustomers.length : 
+                allCustomers.filter(c => c.location === selectedCountry).length;
+            document.getElementById('customerCount').textContent = displayedCount;
+        }
+
+        function applyCountryFilter() {
+            const selectedCountry = document.getElementById('countryFilter').value;
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Filtering...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                filterCustomersByCountry();
+                
+                button.innerHTML = originalText;
+                button.disabled = false;
+                
+                // Show success message
+                const message = selectedCountry === 'all' ? 
+                    'Showing all customers from all countries' : 
+                    `Filtered to show customers from ${selectedCountry}`;
+                    
+                const toast = document.createElement('div');
+                toast.className = 'alert alert-info alert-dismissible fade show position-fixed';
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+                toast.innerHTML = `
+                    <i class="fas fa-filter me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                document.body.appendChild(toast);
+                
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 3000);
+            }, 500);
+        }
+
+        function updateStatsForCustomers(customers) {
+            if (customers.length === 0) {
+                document.getElementById('totalCustomers').textContent = '0';
+                document.getElementById('highPotential').textContent = '0';
+                document.getElementById('avgSpend').textContent = 'QAR 0.00';
+                document.getElementById('avgData').textContent = '0.0 GB';
+                return;
+            }
+            
+            const highPotential = customers.filter(c => c.upsell_target === 1).length;
+            const avgSpend = customers.reduce((sum, c) => sum + c.monthly_spend, 0) / customers.length;
+            const avgData = customers.reduce((sum, c) => sum + c.data_usage_gb, 0) / customers.length;
+            
+            document.getElementById('totalCustomers').textContent = customers.length;
+            document.getElementById('highPotential').textContent = highPotential;
+            document.getElementById('avgSpend').textContent = 'QAR ' + avgSpend.toFixed(2);
+            document.getElementById('avgData').textContent = avgData.toFixed(1) + ' GB';
+        }
+    </script>
+</body>
+</html>
