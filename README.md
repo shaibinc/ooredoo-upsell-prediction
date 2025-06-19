@@ -223,9 +223,10 @@ Health check endpoint.
 
 ### Algorithm
 
-- **Random Forest Classifier** with 100 estimators
+- **Random Forest Regressor** with 100 estimators
 - Handles both numerical and categorical features
 - Robust to overfitting and provides feature importance
+- **Regression Approach**: Predicts upsell probability as a continuous value rather than binary classification
 
 ### Features Used
 
