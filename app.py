@@ -706,17 +706,25 @@ except Exception as e:
 try:
     predictor = OoreedooUpsellPredictor()
     
-    # Train model on startup
-    if not os.path.exists('ooredoo_model.pkl'):
-        print("Training new model...")
+    # In Azure, always train model on startup since file system is ephemeral
+    if os.environ.get('WEBSITE_SITE_NAME'):  # Running in Azure
+        print("Running in Azure - training model on startup...")
         sample_data = predictor.generate_sample_data(2000)
         predictor.train_model(sample_data)
         predictor.save_model('ooredoo_model.pkl')
         print("Model trained and saved!")
     else:
-        print("Loading existing model...")
-        predictor.load_model('ooredoo_model.pkl')
-        print("Model loaded successfully!")
+        # Local development - use existing model if available
+        if not os.path.exists('ooredoo_model.pkl'):
+            print("Training new model...")
+            sample_data = predictor.generate_sample_data(2000)
+            predictor.train_model(sample_data)
+            predictor.save_model('ooredoo_model.pkl')
+            print("Model trained and saved!")
+        else:
+            print("Loading existing model...")
+            predictor.load_model('ooredoo_model.pkl')
+            print("Model loaded successfully!")
     
     # Check if we need to populate the database with sample data
     try:
@@ -748,12 +756,19 @@ def predict():
         if predictor is None:
             print("Lazy initializing predictor...")
             predictor = OoreedooUpsellPredictor()
-            if os.path.exists('ooredoo_model.pkl'):
-                predictor.load_model('ooredoo_model.pkl')
-            else:
+            if os.environ.get('WEBSITE_SITE_NAME'):  # Running in Azure
+                print("Azure environment - training model...")
                 sample_data = predictor.generate_sample_data(2000)
                 predictor.train_model(sample_data)
                 predictor.save_model('ooredoo_model.pkl')
+            else:
+                # Local development
+                if os.path.exists('ooredoo_model.pkl'):
+                    predictor.load_model('ooredoo_model.pkl')
+                else:
+                    sample_data = predictor.generate_sample_data(2000)
+                    predictor.train_model(sample_data)
+                    predictor.save_model('ooredoo_model.pkl')
         
         # Get data from request
         data = request.json
