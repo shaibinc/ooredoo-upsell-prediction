@@ -20,20 +20,51 @@ app = Flask(__name__)
 # Database configuration
 import tempfile
 import os
-# Use a temporary directory for the database in Azure
+
+# Database configuration
 if os.environ.get('WEBSITE_SITE_NAME'):  # Running in Azure
-    DATABASE = '/tmp/ooredoo_customers.db'
+    # Use Azure SQL Database
+    USE_AZURE_SQL = True
+    AZURE_SQL_SERVER = os.environ.get('AZURE_SQL_SERVER', 'your-server.database.windows.net')
+    AZURE_SQL_DATABASE = os.environ.get('AZURE_SQL_DATABASE', 'ooredoo-db')
+    AZURE_SQL_USERNAME = os.environ.get('AZURE_SQL_USERNAME', 'your-username')
+    AZURE_SQL_PASSWORD = os.environ.get('AZURE_SQL_PASSWORD', 'your-password')
+    DATABASE = None  # Not used for Azure SQL
 else:  # Running locally
+    USE_AZURE_SQL = False
     DATABASE = 'ooredoo_customers.db'
+
+# Import pyodbc for Azure SQL Database
+try:
+    import pyodbc
+    PYODBC_AVAILABLE = True
+except ImportError:
+    PYODBC_AVAILABLE = False
+    print("Warning: pyodbc not available. Azure SQL Database features will be disabled.")
+
 # Global database connection for in-memory database in Azure
 _global_db_connection = None
 
 def get_db_connection():
-    """Get database connection, reusing global connection for in-memory database"""
+    """Get database connection for SQLite or Azure SQL Database"""
     global _global_db_connection
-    if DATABASE == ":memory:" and _global_db_connection:
+    if USE_AZURE_SQL and PYODBC_AVAILABLE:
+        # Azure SQL Database connection
+        connection_string = (
+            f"Driver={{ODBC Driver 18 for SQL Server}};"
+            f"Server=tcp:{AZURE_SQL_SERVER},1433;"
+            f"Database={AZURE_SQL_DATABASE};"
+            f"Uid={AZURE_SQL_USERNAME};"
+            f"Pwd={AZURE_SQL_PASSWORD};"
+            f"Encrypt=yes;"
+            f"TrustServerCertificate=no;"
+            f"Connection Timeout=30;"
+        )
+        return pyodbc.connect(connection_string)
+    elif DATABASE == ":memory:" and _global_db_connection:
         return _global_db_connection
     else:
+        # SQLite connection for local development
         return sqlite3.connect(DATABASE)
 
 # GPT API Configuration (Azure OpenAI)
@@ -53,21 +84,19 @@ if GPT_API_ENABLED:
     openai.api_key = OPENAI_API_KEY
 
 def init_database():
-    """Initialize the SQLite database"""
+    """Initialize the database (SQLite or Azure SQL Database)"""
     import os
-    import sqlite3
     import time
-    import tempfile
     
     print("Attempting to initialize database...")
     
-    # In Azure, use in-memory database to completely avoid file corruption issues
-    if os.environ.get('WEBSITE_SITE_NAME'):  # Running in Azure
-        global DATABASE
-        DATABASE = ":memory:"
-        print("Azure environment detected, using in-memory database to avoid corruption")
+    if USE_AZURE_SQL:
+        print("Azure SQL Database detected, initializing...")
+        if not PYODBC_AVAILABLE:
+            print("Error: pyodbc not available for Azure SQL Database")
+            raise ImportError("pyodbc is required for Azure SQL Database")
     else:
-        # Local environment - remove existing database
+        # Local SQLite environment - remove existing database
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -86,43 +115,66 @@ def init_database():
     max_db_retries = 3
     for db_attempt in range(max_db_retries):
         try:
-            conn = sqlite3.connect(DATABASE)
+            conn = get_db_connection()
             cursor = conn.cursor()
-            print(f"Database connection established: {DATABASE} (attempt {db_attempt + 1})")
             
-            # Store global connection for in-memory database
-            if DATABASE == ":memory:":
-                global _global_db_connection
-                _global_db_connection = conn
+            if USE_AZURE_SQL:
+                print(f"Azure SQL Database connection established (attempt {db_attempt + 1})")
+            else:
+                print(f"SQLite database connection established: {DATABASE} (attempt {db_attempt + 1})")
             
             break
-        except sqlite3.Error as e:
+        except Exception as e:
             print(f"Failed to connect to database (attempt {db_attempt + 1}): {e}")
             if db_attempt == max_db_retries - 1:
                 raise
             time.sleep(1)
     
-    # Create customers table
+    # Create customers table with appropriate SQL syntax
     try:
-        cursor.execute('''
-         CREATE TABLE IF NOT EXISTS customers (
-             customer_id INTEGER PRIMARY KEY,
-             age INTEGER,
-             gender TEXT,
-             country TEXT,
-             location TEXT,
-             monthly_spend REAL,
-             data_usage_gb REAL,
-             call_minutes INTEGER,
-             sms_count INTEGER,
-             tenure_months INTEGER,
-             complaint_count INTEGER,
-             payment_method TEXT,
-             current_plan TEXT,
-             upsell_target REAL,
-             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-         )
-         ''')
+        if USE_AZURE_SQL:
+            # SQL Server syntax
+            cursor.execute('''
+             IF NOT EXISTS (SELECT * FROM sysobjects WHERE name='customers' AND xtype='U')
+             CREATE TABLE customers (
+                 customer_id INT IDENTITY(1,1) PRIMARY KEY,
+                 age INT,
+                 gender NVARCHAR(50),
+                 country NVARCHAR(100),
+                 location NVARCHAR(100),
+                 monthly_spend DECIMAL(10,2),
+                 data_usage_gb DECIMAL(10,2),
+                 call_minutes INT,
+                 sms_count INT,
+                 tenure_months INT,
+                 complaint_count INT,
+                 payment_method NVARCHAR(50),
+                 current_plan NVARCHAR(100),
+                 upsell_target DECIMAL(10,2),
+                 created_at DATETIME2 DEFAULT GETDATE()
+             )
+             ''')
+        else:
+            # SQLite syntax
+            cursor.execute('''
+             CREATE TABLE IF NOT EXISTS customers (
+                 customer_id INTEGER PRIMARY KEY,
+                 age INTEGER,
+                 gender TEXT,
+                 country TEXT,
+                 location TEXT,
+                 monthly_spend REAL,
+                 data_usage_gb REAL,
+                 call_minutes INTEGER,
+                 sms_count INTEGER,
+                 tenure_months INTEGER,
+                 complaint_count INTEGER,
+                 payment_method TEXT,
+                 current_plan TEXT,
+                 upsell_target REAL,
+                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+             )
+             ''')
         conn.commit()
         print("Database table created successfully")
         
@@ -139,13 +191,13 @@ def init_database():
         else:
             print(f"Database contains {count} customers")
             
-    except sqlite3.Error as e:
+    except Exception as e:
         print(f"Error creating database table: {e}")
         conn.rollback()
         raise
     finally:
-        # Don't close connection for in-memory database
-        if DATABASE != ":memory:":
+        # Always close connection for Azure SQL, close SQLite except in-memory
+        if USE_AZURE_SQL or (DATABASE and DATABASE != ":memory:"):
             conn.close()
         print("Database initialization completed")
 
@@ -267,19 +319,30 @@ def insert_customers_to_db(customers_df):
     
     cursor = conn.cursor()
     
-    # Insert customers (ignore duplicates)
-    cursor.executemany('''
-        INSERT OR IGNORE INTO customers 
-        (customer_id, age, gender, country, location, monthly_spend, data_usage_gb, 
-         call_minutes, sms_count, tenure_months, complaint_count, 
-         payment_method, current_plan, upsell_target)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', customers_data)
+    # Insert customers with appropriate SQL syntax
+    if USE_AZURE_SQL:
+        # SQL Server syntax - exclude customer_id for IDENTITY column
+        cursor.executemany('''
+            INSERT INTO customers (
+                age, gender, country, location, monthly_spend, data_usage_gb,
+                call_minutes, sms_count, tenure_months, complaint_count,
+                payment_method, current_plan, upsell_target
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', [row[1:] for row in customers_data])  # Skip customer_id
+    else:
+        # SQLite syntax
+        cursor.executemany('''
+            INSERT OR IGNORE INTO customers 
+            (customer_id, age, gender, country, location, monthly_spend, data_usage_gb, 
+             call_minutes, sms_count, tenure_months, complaint_count, 
+             payment_method, current_plan, upsell_target)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', customers_data)
     
     conn.commit()
     rows_inserted = cursor.rowcount
     # Don't close connection for in-memory database
-    if DATABASE != ":memory:":
+    if USE_AZURE_SQL or (DATABASE and DATABASE != ":memory:"):
         conn.close()
     
     return rows_inserted
@@ -300,8 +363,8 @@ def get_customers_from_db(limit=None):
         query += f' LIMIT {limit}'
     
     df = pd.read_sql_query(query, conn)
-    # Don't close connection for in-memory database
-    if DATABASE != ":memory:":
+    # Close connection appropriately
+    if USE_AZURE_SQL or (DATABASE and DATABASE != ":memory:"):
         conn.close()
     
     return df
@@ -314,8 +377,8 @@ def get_customer_count():
     cursor.execute('SELECT COUNT(*) FROM customers')
     count = cursor.fetchone()[0]
     
-    # Don't close connection for in-memory database
-    if DATABASE != ":memory:":
+    # Close connection appropriately
+    if USE_AZURE_SQL or (DATABASE and DATABASE != ":memory:"):
         conn.close()
     return count
 
