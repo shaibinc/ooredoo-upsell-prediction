@@ -25,6 +25,16 @@ if os.environ.get('WEBSITE_SITE_NAME'):  # Running in Azure
     DATABASE = '/tmp/ooredoo_customers.db'
 else:  # Running locally
     DATABASE = 'ooredoo_customers.db'
+# Global database connection for in-memory database in Azure
+_global_db_connection = None
+
+def get_db_connection():
+    """Get database connection, reusing global connection for in-memory database"""
+    global _global_db_connection
+    if DATABASE == ":memory:" and _global_db_connection:
+        return _global_db_connection
+    else:
+        return sqlite3.connect(DATABASE)
 
 # GPT API Configuration (Azure OpenAI)
 # Note: In production, store these in environment variables or Azure Key Vault
@@ -51,14 +61,11 @@ def init_database():
     
     print("Attempting to initialize database...")
     
-    # In Azure, always use a fresh temporary database to avoid corruption
+    # In Azure, use in-memory database to completely avoid file corruption issues
     if os.environ.get('WEBSITE_SITE_NAME'):  # Running in Azure
-        # Create a unique database name to avoid conflicts
-        import uuid
-        db_name = f"ooredoo_customers_{uuid.uuid4().hex[:8]}.db"
         global DATABASE
-        DATABASE = f"/tmp/{db_name}"
-        print(f"Azure environment detected, using fresh database: {DATABASE}")
+        DATABASE = ":memory:"
+        print("Azure environment detected, using in-memory database to avoid corruption")
     else:
         # Local environment - remove existing database
         max_retries = 3
@@ -76,13 +83,24 @@ def init_database():
                     print("Failed to remove database after all attempts, continuing anyway...")
                 time.sleep(0.5)
     
-    try:
-        conn = sqlite3.connect(DATABASE)
-        cursor = conn.cursor()
-        print(f"New database connection established at: {DATABASE}")
-    except sqlite3.Error as e:
-        print(f"Failed to connect to database: {e}")
-        raise
+    max_db_retries = 3
+    for db_attempt in range(max_db_retries):
+        try:
+            conn = sqlite3.connect(DATABASE)
+            cursor = conn.cursor()
+            print(f"Database connection established: {DATABASE} (attempt {db_attempt + 1})")
+            
+            # Store global connection for in-memory database
+            if DATABASE == ":memory:":
+                global _global_db_connection
+                _global_db_connection = conn
+            
+            break
+        except sqlite3.Error as e:
+            print(f"Failed to connect to database (attempt {db_attempt + 1}): {e}")
+            if db_attempt == max_db_retries - 1:
+                raise
+            time.sleep(1)
     
     # Create customers table
     try:
@@ -126,7 +144,9 @@ def init_database():
         conn.rollback()
         raise
     finally:
-        conn.close()
+        # Don't close connection for in-memory database
+        if DATABASE != ":memory:":
+            conn.close()
         print("Database initialization completed")
 
 def get_gpt_explanation(customer_data, prediction_prob, recommendation):
@@ -223,7 +243,7 @@ def get_gpt_explanation(customer_data, prediction_prob, recommendation):
 
 def insert_customers_to_db(customers_df):
     """Insert customer data into the database"""
-    conn = sqlite3.connect(DATABASE)
+    conn = get_db_connection()
     
     # Convert DataFrame to list of tuples for insertion
     customers_data = []
@@ -258,13 +278,15 @@ def insert_customers_to_db(customers_df):
     
     conn.commit()
     rows_inserted = cursor.rowcount
-    conn.close()
+    # Don't close connection for in-memory database
+    if DATABASE != ":memory:":
+        conn.close()
     
     return rows_inserted
 
 def get_customers_from_db(limit=None):
     """Retrieve customers from the database"""
-    conn = sqlite3.connect(DATABASE)
+    conn = get_db_connection()
     
     query = '''
         SELECT customer_id, age, gender, country, location, monthly_spend, data_usage_gb,
@@ -278,19 +300,23 @@ def get_customers_from_db(limit=None):
         query += f' LIMIT {limit}'
     
     df = pd.read_sql_query(query, conn)
-    conn.close()
+    # Don't close connection for in-memory database
+    if DATABASE != ":memory:":
+        conn.close()
     
     return df
 
 def get_customer_count():
     """Get total number of customers in database"""
-    conn = sqlite3.connect(DATABASE)
+    conn = get_db_connection()
     cursor = conn.cursor()
     
     cursor.execute('SELECT COUNT(*) FROM customers')
     count = cursor.fetchone()[0]
     
-    conn.close()
+    # Don't close connection for in-memory database
+    if DATABASE != ":memory:":
+        conn.close()
     return count
 
 # Global variables for model and encoders
