@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upsell Revenue Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --dark-color: #1f2937;
+            --light-color: #f8fafc;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin: 2rem auto;
+            max-width: 1200px;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+        
+        .header-section h1 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+        
+        .header-section p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+        
+        .form-section {
+            padding: 2rem;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: var(--dark-color);
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-control, .form-select {
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+        }
+        
+        .btn-predict {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn-predict:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.3);
+            color: white;
+        }
+        
+        .btn-predict:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .prediction-result {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-top: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid var(--primary-color);
+        }
+        
+        .revenue-card {
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            transition: background 0.3s ease;
+        }
+        
+        .revenue-card.confidence-high {
+            background: linear-gradient(135deg, var(--success-color), #10b981);
+        }
+        
+        .revenue-card.confidence-medium {
+            background: linear-gradient(135deg, var(--warning-color), #f59e0b);
+        }
+        
+        .revenue-card.confidence-low {
+            background: linear-gradient(135deg, var(--danger-color), #ef4444);
+        }
+        
+        .revenue-amount {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .confidence-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .confidence-high {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .confidence-medium {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .confidence-low {
+            background: var(--danger-color);
+            color: white;
+        }
+        
+        .analysis-section {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 1.5rem;
+        }
+        
+        .analysis-section h5 {
+            color: var(--dark-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .recommendation-item {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .upsell-plan {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            padding: 1.5rem;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+        }
+        
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .error-alert {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .icon-input {
+            position: relative;
+        }
+        
+        .icon-input i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+        }
+        
+        .icon-input .form-control {
+            padding-left: 2.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 1rem;
+            }
+            
+            .header-section h1 {
+                font-size: 2rem;
+            }
+            
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Header Section -->
+            <div class="header-section">
+                <h1><i class="fas fa-chart-line me-3"></i>Upsell Revenue Predictor</h1>
+                <p>AI-Powered Customer Upselling with Revenue Prediction & Strategic Planning</p>
+            </div>
+            
+            <!-- Form Section -->
+            <div class="form-section">
+                <form id="predictionForm">
+                    <div class="feature-grid">
+                        <!-- Customer Demographics -->
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-user me-2"></i>Age</label>
+                            <div class="icon-input">
+                                <i class="fas fa-calendar-alt"></i>
+                                <input type="number" class="form-control" id="age" name="age" min="18" max="80" value="35" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-venus-mars me-2"></i>Gender</label>
+                            <select class="form-select" id="gender" name="gender" required>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-globe me-2"></i>Country</label>
+                            <select class="form-select" id="country" name="country" required>
+                                <option value="Qatar">Qatar</option>
+                                <option value="Oman">Oman</option>
+                                <option value="Kuwait">Kuwait</option>
+                                <option value="Algeria">Algeria</option>
+                                <option value="Tunisia">Tunisia</option>
+                                <option value="Iraq">Iraq</option>
+                                <option value="Palestine">Palestine</option>
+                                <option value="Maldives">Maldives</option>
+                                <option value="Myanmar">Myanmar</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-map-marker-alt me-2"></i>Location</label>
+                            <select class="form-select" id="location" name="location" required>
+                                <option value="Doha">Doha</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Usage Patterns -->
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-money-bill-wave me-2"></i>Monthly Spend (QAR)</label>
+                            <div class="icon-input">
+                                <i class="fas fa-dollar-sign"></i>
+                                <input type="number" class="form-control" id="monthly_spend" name="monthly_spend" min="0" step="0.01" value="200" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-wifi me-2"></i>Data Usage (GB)</label>
+                            <div class="icon-input">
+                                <i class="fas fa-database"></i>
+                                <input type="number" class="form-control" id="data_usage_gb" name="data_usage_gb" min="0" step="0.1" value="15" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-phone me-2"></i>Call Minutes</label>
+                            <div class="icon-input">
+                                <i class="fas fa-clock"></i>
+                                <input type="number" class="form-control" id="call_minutes" name="call_minutes" min="0" value="250" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-sms me-2"></i>SMS Count</label>
+                            <div class="icon-input">
+                                <i class="fas fa-envelope"></i>
+                                <input type="number" class="form-control" id="sms_count" name="sms_count" min="0" value="120" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Features -->
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-plane me-2"></i>Roaming Usage (QAR)</label>
+                            <div class="icon-input">
+                                <i class="fas fa-globe-americas"></i>
+                                <input type="number" class="form-control" id="roaming_usage" name="roaming_usage" min="0" step="0.01" value="50">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-globe-europe me-2"></i>International Calls (Minutes)</label>
+                            <div class="icon-input">
+                                <i class="fas fa-phone-alt"></i>
+                                <input type="number" class="form-control" id="international_calls" name="international_calls" min="0" value="30">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-star me-2"></i>Premium Services (QAR)</label>
+                            <div class="icon-input">
+                                <i class="fas fa-crown"></i>
+                                <input type="number" class="form-control" id="premium_services" name="premium_services" min="0" step="0.01" value="25">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-calendar-check me-2"></i>Tenure (Months)</label>
+                            <div class="icon-input">
+                                <i class="fas fa-history"></i>
+                                <input type="number" class="form-control" id="tenure_months" name="tenure_months" min="1" value="24">
+                            </div>
+                        </div>
+                        
+                        <!-- Customer Satisfaction -->
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-smile me-2"></i>Satisfaction Score (1-10)</label>
+                            <div class="icon-input">
+                                <i class="fas fa-thumbs-up"></i>
+                                <input type="number" class="form-control" id="satisfaction_score" name="satisfaction_score" min="1" max="10" step="0.1" value="7.5">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-exclamation-triangle me-2"></i>Complaint Count</label>
+                            <div class="icon-input">
+                                <i class="fas fa-frown"></i>
+                                <input type="number" class="form-control" id="complaint_count" name="complaint_count" min="0" value="0">
+                            </div>
+                        </div>
+                        
+                        <!-- Plan Information -->
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-mobile-alt me-2"></i>Current Plan</label>
+                            <select class="form-select" id="current_plan" name="current_plan" required>
+                                <option value="Hala Super 40">Hala Super 40</option>
+                                <option value="Hala Digital">Hala Digital</option>
+                                <option value="Hala Visitor SIM">Hala Visitor SIM</option>
+                                <option value="Shahry+ Select">Shahry+ Select</option>
+                                <option value="Shahry+ Go">Shahry+ Go</option>
+                                <option value="Qatarna+ Pro">Qatarna+ Pro</option>
+                                <option value="Qatarna+ Premium">Qatarna+ Premium</option>
+                                <option value="Qatarna+ Al Nokhba">Qatarna+ Al Nokhba</option>
+                                <option value="Business Elite">Business Elite</option>
+                                <option value="Enterprise Plus">Enterprise Plus</option>
+                                <option value="Family Bundle">Family Bundle</option>
+                                <option value="Student Special">Student Special</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-tag me-2"></i>Current Plan Price (QAR)</label>
+                            <div class="icon-input">
+                                <i class="fas fa-money-check"></i>
+                                <input type="number" class="form-control" id="current_plan_price" name="current_plan_price" min="0" step="0.01" value="100">
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label"><i class="fas fa-credit-card me-2"></i>Payment Method</label>
+                            <select class="form-select" id="payment_method" name="payment_method">
+                                <option value="Credit Card">Credit Card</option>
+                                <option value="Bank Transfer">Bank Transfer</option>
+                                <option value="Cash">Cash</option>
+                                <option value="Mobile Payment">Mobile Payment</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <button type="submit" class="btn btn-predict">
+                                    <i class="fas fa-magic me-2"></i>Predict Upsell Revenue Potential
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="/customers" class="btn btn-outline-primary w-100" style="padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; border-radius: 10px; border-width: 2px;">
+                                    <i class="fas fa-database me-2"></i>View Customer Database
+                                </a>
+                            </div>
+                            <div class="col-md-4">
+                                <a href="/analytics" class="btn btn-outline-success w-100" style="padding: 1rem 2rem; font-size: 1.1rem; font-weight: 600; border-radius: 10px; border-width: 2px;">
+                                    <i class="fas fa-chart-bar me-2"></i>Analytics Dashboard
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Sample Data Buttons -->
+                        <div class="mt-4">
+                            <h6 class="text-muted mb-3"><i class="fas fa-flask me-2"></i>Try Sample Data</h6>
+                            <div class="row g-2">
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-success w-100" onclick="loadSampleData('high')" style="border-radius: 8px; font-size: 0.9rem;">
+                                        <i class="fas fa-arrow-up me-1"></i>High Potential
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-warning w-100" onclick="loadSampleData('medium')" style="border-radius: 8px; font-size: 0.9rem;">
+                                        <i class="fas fa-minus me-1"></i>Medium Potential
+                                    </button>
+                                </div>
+                                <div class="col-md-4">
+                                    <button type="button" class="btn btn-outline-danger w-100" onclick="loadSampleData('low')" style="border-radius: 8px; font-size: 0.9rem;">
+                                        <i class="fas fa-arrow-down me-1"></i>Low Potential
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                
+                <!-- Loading Spinner -->
+                <div class="loading-spinner" id="loadingSpinner">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Analyzing customer data and generating AI insights...</p>
+                </div>
+                
+                <!-- Results Section -->
+                <div id="resultsSection" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Location mapping based on country
+        const countryLocations = {
+            'Qatar': ['Doha', 'Al Rayyan', 'Al Wakrah', 'Al Khor', 'Umm Salal'],
+            'Oman': ['Muscat', 'Salalah', 'Nizwa', 'Sur', 'Sohar'],
+            'Kuwait': ['Kuwait City', 'Hawalli', 'Farwaniya', 'Ahmadi', 'Jahra'],
+            'Algeria': ['Algiers', 'Oran', 'Constantine', 'Annaba', 'Blida'],
+            'Tunisia': ['Tunis', 'Sfax', 'Sousse', 'Kairouan', 'Bizerte'],
+            'Iraq': ['Baghdad', 'Basra', 'Mosul', 'Erbil', 'Najaf'],
+            'Palestine': ['Gaza', 'Ramallah', 'Hebron', 'Nablus', 'Bethlehem'],
+            'Maldives': ['Male', 'Addu City', 'Fuvahmulah', 'Kulhudhuffushi', 'Thinadhoo'],
+            'Myanmar': ['Yangon', 'Mandalay', 'Naypyidaw', 'Mawlamyine', 'Bago']
+        };
+        
+        // Update locations when country changes
+        document.getElementById('country').addEventListener('change', function() {
+            const country = this.value;
+            const locationSelect = document.getElementById('location');
+            const locations = countryLocations[country] || ['Unknown'];
+            
+            locationSelect.innerHTML = '';
+            locations.forEach(location => {
+                const option = document.createElement('option');
+                option.value = location;
+                option.textContent = location;
+                locationSelect.appendChild(option);
+            });
+        });
+        
+        // Form submission
+        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const data = {};
+            
+            // Convert form data to object
+            for (let [key, value] of formData.entries()) {
+                if (['age', 'monthly_spend', 'data_usage_gb', 'call_minutes', 'sms_count', 
+                     'roaming_usage', 'international_calls', 'premium_services', 'tenure_months',
+                     'satisfaction_score', 'complaint_count', 'current_plan_price'].includes(key)) {
+                    data[key] = parseFloat(value) || 0;
+                } else {
+                    data[key] = value;
+                }
+            }
+            
+            // Show loading spinner
+            document.getElementById('loadingSpinner').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    displayResults(result);
+                } else {
+                    displayError(result.error || 'An error occurred');
+                }
+            } catch (error) {
+                displayError('Network error: ' + error.message);
+            } finally {
+                document.getElementById('loadingSpinner').style.display = 'none';
+            }
+        });
+        
+        function displayResults(result) {
+            const prediction = result.prediction;
+            const gptAnalysis = result.gpt_analysis;
+            
+            // Determine confidence level
+            const confidence = prediction.confidence_score;
+            let confidenceClass, confidenceText;
+            
+            if (confidence >= 0.7) {
+                confidenceClass = 'confidence-high';
+                confidenceText = 'High Confidence';
+            } else if (confidence >= 0.4) {
+                confidenceClass = 'confidence-medium';
+                confidenceText = 'Medium Confidence';
+            } else {
+                confidenceClass = 'confidence-low';
+                confidenceText = 'Low Confidence';
+            }
+            
+            const html = `
+                <div class="prediction-result">
+                    <div class="revenue-card ${confidenceClass}">
+                        <div class="revenue-amount">QAR ${prediction.predicted_revenue_increase}</div>
+                        <div>Predicted Monthly Revenue Increase</div>
+                        <div class="mt-2">
+                            <span class="confidence-badge ${confidenceClass}">
+                                <i class="fas fa-chart-bar me-1"></i>${confidenceText} (${Math.round(confidence * 100)}%)
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="analysis-section">
+                        <h5><i class="fas fa-brain me-2"></i>AI Customer Analysis</h5>
+                        <p>${gptAnalysis.analysis}</p>
+                    </div>
+                    
+                    <div class="analysis-section">
+                        <h5><i class="fas fa-lightbulb me-2"></i>Upsell Recommendations</h5>
+                        ${gptAnalysis.recommendations.map(rec => 
+                            `<div class="recommendation-item"><i class="fas fa-arrow-right me-2"></i>${rec}</div>`
+                        ).join('')}
+                    </div>
+                    
+                    <div class="analysis-section">
+                        <h5><i class="fas fa-strategy me-2"></i>Strategic Upsell Plan</h5>
+                        <div class="upsell-plan">
+                            <p>${gptAnalysis.upsell_plan}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('resultsSection').innerHTML = html;
+            document.getElementById('resultsSection').style.display = 'block';
+            
+            // Scroll to results
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function displayError(message) {
+            const html = `
+                <div class="error-alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Error:</strong> ${message}
+                </div>
+            `;
+            
+            document.getElementById('resultsSection').innerHTML = html;
+            document.getElementById('resultsSection').style.display = 'block';
+        }
+        
+        // Sample data for different upsell potential levels
+        function loadSampleData(level) {
+            let sampleData;
+            
+            switch(level) {
+                case 'high':
+                    sampleData = {
+                        age: 42,
+                        gender: 'Male',
+                        country: 'Qatar',
+                        location: 'Doha',
+                        monthly_spend: 450,
+                        data_usage_gb: 35,
+                        call_minutes: 800,
+                        sms_count: 200,
+                        roaming_usage: 120,
+                        international_calls: 150,
+                        premium_services: 80,
+                        tenure_months: 48,
+                        complaint_count: 0,
+                        payment_method: 'Credit Card',
+                        satisfaction_score: 9.2,
+                        current_plan: 'Qatarna+ Premium',
+                        current_plan_price: 200
+                    };
+                    break;
+                    
+                case 'medium':
+                    sampleData = {
+                        age: 40,
+                        gender: 'Male',
+                        country: 'Qatar',
+                        location: 'Doha',
+                        monthly_spend: 35,
+                        data_usage_gb: 13,
+                        call_minutes: 100,
+                        sms_count: 10,
+                        roaming_usage: 0,
+                        international_calls: 100,
+                        premium_services: 0,
+                        tenure_months: 3,
+                        complaint_count: 5,
+                        payment_method: 'Cash',
+                        satisfaction_score: 6.0,
+                        current_plan: 'Hala Super 40',
+                        current_plan_price:45
+                    };
+                    break;
+                    
+                case 'low':
+                    sampleData = {
+                        age: 72,
+                        gender: 'Male',
+                        country: 'Qatar',
+                        location: 'Al Wakrah',
+                        monthly_spend: 25,
+                        data_usage_gb: 0.5,
+                        call_minutes: 50,
+                        sms_count: 5,
+                        roaming_usage: 0,
+                        international_calls: 0,
+                        premium_services: 0,
+                        tenure_months: 3,
+                        complaint_count: 5,
+                        payment_method: 'Cash',
+                        satisfaction_score: 2.1,
+                        current_plan: 'Student Special',
+                        current_plan_price: 35
+                    };
+                    break;
+            }
+            
+            // Populate form fields
+            Object.keys(sampleData).forEach(key => {
+                const element = document.getElementById(key);
+                if (element) {
+                    element.value = sampleData[key];
+                    
+                    // Trigger change event for country to update locations
+                    if (key === 'country') {
+                        element.dispatchEvent(new Event('change'));
+                        // Set location after country change
+                        setTimeout(() => {
+                            document.getElementById('location').value = sampleData.location;
+                        }, 100);
+                    }
+                }
+            });
+            
+            // Clear any previous results
+            document.getElementById('resultsSection').style.display = 'none';
+        }
+        
+        // Initialize locations on page load
+        document.getElementById('country').dispatchEvent(new Event('change'));
+    </script>
+</body>
+</html>

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Analytics Dashboard - Upsell Revenue Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --secondary-color: #1e40af;
+            --success-color: #059669;
+            --warning-color: #d97706;
+            --danger-color: #dc2626;
+            --dark-color: #1f2937;
+            --light-color: #f8fafc;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin: 2rem auto;
+            max-width: 1400px;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 2rem;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+        
+        .header-section h1 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+        
+        .header-section p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 0;
+        }
+        
+        .dashboard-content {
+            padding: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            border-left: 5px solid var(--primary-color);
+            transition: transform 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .stat-card.success {
+            border-left-color: var(--success-color);
+        }
+        
+        .stat-card.warning {
+            border-left-color: var(--warning-color);
+        }
+        
+        .stat-card.danger {
+            border-left-color: var(--danger-color);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .chart-container {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            margin-bottom: 2rem;
+        }
+        
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--dark-color);
+        }
+        
+        .btn-back {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(107, 114, 128, 0.3);
+            color: white;
+        }
+        
+        .refresh-btn {
+            background: linear-gradient(135deg, var(--success-color), #10b981);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .refresh-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(5, 150, 105, 0.3);
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 1rem;
+            }
+            
+            .header-section h1 {
+                font-size: 2rem;
+            }
+            
+            .stat-number {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3 mb-0">Loading analytics data...</p>
+        </div>
+    </div>
+    
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Header Section -->
+            <div class="header-section">
+                <h1><i class="fas fa-chart-bar me-3"></i>Customer Analytics Dashboard</h1>
+                <p>Comprehensive insights into customer behavior and upsell opportunities</p>
+                <div class="mt-3">
+                    <a href="/" class="btn-back me-3">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Predictor
+                    </a>
+                    <button class="refresh-btn" onclick="refreshData()">
+                        <i class="fas fa-sync-alt me-2"></i>Refresh Data
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Dashboard Content -->
+            <div class="dashboard-content">
+                <!-- Key Statistics -->
+                <div class="row mb-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card">
+                            <div class="stat-number text-primary" id="totalCustomers">-</div>
+                            <div class="stat-label">Total Customers</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card success">
+                            <div class="stat-number text-success" id="avgRevenue">-</div>
+                            <div class="stat-label">Avg Monthly Revenue (QAR)</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card warning">
+                            <div class="stat-number text-warning" id="highPotentialCustomers">-</div>
+                            <div class="stat-label">High Upsell Potential</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="stat-card danger">
+                            <div class="stat-number text-danger" id="avgSatisfaction">-</div>
+                            <div class="stat-label">Avg Satisfaction Score</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Row 1 -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <div class="chart-title"><i class="fas fa-chart-pie me-2"></i>Customer Distribution by Country</div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="countryChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <div class="chart-title"><i class="fas fa-chart-bar me-2"></i>Monthly Spend Distribution</div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="spendChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Row 2 -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <div class="chart-title"><i class="fas fa-chart-line me-2"></i>Age Distribution</div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="ageChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <div class="chart-title"><i class="fas fa-chart-area me-2"></i>Data Usage vs Revenue Potential</div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="dataUsageChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts Row 3 -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <div class="chart-title"><i class="fas fa-chart-donut me-2"></i>Current Plan Distribution</div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="planChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="chart-container">
+                            <div class="chart-title"><i class="fas fa-chart-scatter me-2"></i>Satisfaction vs Complaints</div>
+                            <div style="position: relative; height: 300px;">
+                                <canvas id="satisfactionChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let charts = {};
+        
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnalyticsData();
+        });
+        
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+        
+        function refreshData() {
+            loadAnalyticsData();
+        }
+        
+        async function loadAnalyticsData() {
+            showLoading();
+            
+            try {
+                const response = await fetch('/api/analytics-data');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                updateStatistics(data.statistics);
+                createCharts(data.charts);
+                
+            } catch (error) {
+                console.error('Error loading analytics data:', error);
+                alert('Error loading analytics data: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+        
+        function updateStatistics(stats) {
+            document.getElementById('totalCustomers').textContent = stats.total_customers.toLocaleString();
+            document.getElementById('avgRevenue').textContent = stats.avg_revenue.toFixed(0);
+            document.getElementById('highPotentialCustomers').textContent = stats.high_potential_customers.toLocaleString();
+            document.getElementById('avgSatisfaction').textContent = stats.avg_satisfaction.toFixed(1);
+        }
+        
+        function createCharts(chartData) {
+            // Destroy existing charts
+            Object.values(charts).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+            
+            // Country Distribution Chart
+            const countryCtx = document.getElementById('countryChart').getContext('2d');
+            charts.country = new Chart(countryCtx, {
+                type: 'pie',
+                data: {
+                    labels: chartData.country_distribution.labels,
+                    datasets: [{
+                        data: chartData.country_distribution.data,
+                        backgroundColor: [
+                            '#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed',
+                            '#0891b2', '#be185d', '#059669', '#ea580c'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Monthly Spend Distribution Chart
+            const spendCtx = document.getElementById('spendChart').getContext('2d');
+            charts.spend = new Chart(spendCtx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.spend_distribution.labels,
+                    datasets: [{
+                        label: 'Number of Customers',
+                        data: chartData.spend_distribution.data,
+                        backgroundColor: '#2563eb',
+                        borderColor: '#1e40af',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Age Distribution Chart
+            const ageCtx = document.getElementById('ageChart').getContext('2d');
+            charts.age = new Chart(ageCtx, {
+                type: 'line',
+                data: {
+                    labels: chartData.age_distribution.labels,
+                    datasets: [{
+                        label: 'Number of Customers',
+                        data: chartData.age_distribution.data,
+                        borderColor: '#059669',
+                        backgroundColor: 'rgba(5, 150, 105, 0.1)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Data Usage vs Revenue Potential Chart
+            const dataUsageCtx = document.getElementById('dataUsageChart').getContext('2d');
+            charts.dataUsage = new Chart(dataUsageCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Customers',
+                        data: chartData.data_usage_revenue.data,
+                        backgroundColor: '#d97706',
+                        borderColor: '#b45309',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Data Usage (GB)'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Monthly Spend (QAR)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Current Plan Distribution Chart
+            const planCtx = document.getElementById('planChart').getContext('2d');
+            charts.plan = new Chart(planCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: chartData.plan_distribution.labels,
+                    datasets: [{
+                        data: chartData.plan_distribution.data,
+                        backgroundColor: [
+                            '#2563eb', '#059669', '#d97706', '#dc2626', '#7c3aed',
+                            '#0891b2', '#be185d', '#059669', '#ea580c', '#6366f1',
+                            '#8b5cf6', '#06b6d4'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+            
+            // Satisfaction vs Complaints Chart
+            const satisfactionCtx = document.getElementById('satisfactionChart').getContext('2d');
+            charts.satisfaction = new Chart(satisfactionCtx, {
+                type: 'scatter',
+                data: {
+                    datasets: [{
+                        label: 'Customers',
+                        data: chartData.satisfaction_complaints.data,
+                        backgroundColor: '#dc2626',
+                        borderColor: '#b91c1c',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Satisfaction Score'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Complaint Count'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

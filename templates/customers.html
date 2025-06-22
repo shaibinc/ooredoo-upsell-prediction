@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Database - Upsell Revenue Predictor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #1f2937;
+        }
+        
+        .main-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            margin: 2rem auto;
+            max-width: 1400px;
+        }
+        
+        .header-section {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            color: white;
+            padding: 2rem;
+            border-radius: 20px 20px 0 0;
+            text-align: center;
+        }
+        
+        .header-section h1 {
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            font-size: 2.5rem;
+        }
+        
+        .content-section {
+            padding: 2rem;
+        }
+        
+        .table-container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .table {
+            margin-bottom: 0;
+        }
+        
+        .table thead th {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            border: none;
+            font-weight: 600;
+            color: #374151;
+            padding: 1rem 0.75rem;
+            font-size: 0.9rem;
+        }
+        
+        .table tbody td {
+            padding: 0.75rem;
+            border-color: #f1f5f9;
+            font-size: 0.85rem;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        .btn-back {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            text-decoration: none;
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-back:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(107, 114, 128, 0.3);
+            color: white;
+        }
+        
+        .stats-card {
+            background: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+        
+        .stats-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563eb;
+        }
+        
+        .revenue-high {
+            color: #059669;
+            font-weight: 600;
+        }
+        
+        .revenue-medium {
+            color: #d97706;
+            font-weight: 600;
+        }
+        
+        .revenue-low {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        
+        .country-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .country-qatar { background: #dbeafe; color: #1e40af; }
+        .country-oman { background: #dcfce7; color: #166534; }
+        .country-kuwait { background: #fef3c7; color: #92400e; }
+        .country-algeria { background: #e0e7ff; color: #3730a3; }
+        .country-tunisia { background: #fce7f3; color: #be185d; }
+        .country-iraq { background: #f3e8ff; color: #7c2d12; }
+        .country-palestine { background: #ecfdf5; color: #065f46; }
+        .country-maldives { background: #cffafe; color: #155e75; }
+        .country-myanmar { background: #fef2f2; color: #991b1b; }
+        
+        @media (max-width: 768px) {
+            .main-container {
+                margin: 1rem;
+            }
+            
+            .table-container {
+                overflow-x: auto;
+            }
+            
+            .header-section h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="main-container">
+            <!-- Header Section -->
+            <div class="header-section">
+                <h1><i class="fas fa-users me-3"></i>Customer Database</h1>
+                <p>Upsell Revenue Predictor - Customer Analytics</p>
+            </div>
+            
+            <!-- Content Section -->
+            <div class="content-section">
+                <a href="/" class="btn-back">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Predictor
+                </a>
+                
+                <!-- Statistics Card -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="stats-number">{{ customers|length }}</div>
+                            <div>Total Customers</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="stats-number">QAR {{ "%.0f"|format(customers|sum(attribute=17)|default(0)) }}</div>
+                            <div>Total Revenue Potential</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="stats-number">{{ (customers|selectattr('17', '>', 100)|list|length) }}</div>
+                            <div>High Value Customers</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stats-card">
+                            <div class="stats-number">QAR {{ "%.0f"|format((customers|sum(attribute=17)|default(0)) / (customers|length|default(1))) }}</div>
+                            <div>Avg Revenue Potential</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Customer Table -->
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Age</th>
+                                <th>Gender</th>
+                                <th>Country</th>
+                                <th>Location</th>
+                                <th>Monthly Spend</th>
+                                <th>Data (GB)</th>
+                                <th>Call Min</th>
+                                <th>SMS</th>
+                                <th>Roaming</th>
+                                <th>Intl Calls</th>
+                                <th>Premium</th>
+                                <th>Tenure</th>
+                                <th>Complaints</th>
+                                <th>Satisfaction</th>
+                                <th>Current Plan</th>
+                                <th>Plan Price</th>
+                                <th>Revenue Potential</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for customer in customers[:100] %}
+                            <tr>
+                                <td><strong>{{ customer[0] }}</strong></td>
+                                <td>{{ customer[1] }}</td>
+                                <td>{{ customer[2] }}</td>
+                                <td>
+                                    <span class="country-badge country-{{ customer[3].lower().replace(' ', '') }}">
+                                        {{ customer[3] }}
+                                    </span>
+                                </td>
+                                <td>{{ customer[4] }}</td>
+                                <td>QAR {{ "%.0f"|format(customer[5]) }}</td>
+                                <td>{{ "%.1f"|format(customer[6]) }}</td>
+                                <td>{{ "%.0f"|format(customer[7]) }}</td>
+                                <td>{{ "%.0f"|format(customer[8]) }}</td>
+                                <td>QAR {{ "%.0f"|format(customer[9]) }}</td>
+                                <td>{{ "%.0f"|format(customer[10]) }}</td>
+                                <td>QAR {{ "%.0f"|format(customer[11]) }}</td>
+                                <td>{{ "%.0f"|format(customer[12]) }}</td>
+                                <td>{{ customer[13] }}</td>
+                                <td>{{ "%.1f"|format(customer[15]) }}/10</td>
+                                <td>{{ customer[16] }}</td>
+                                <td>QAR {{ "%.0f"|format(customer[17]) }}</td>
+                                <td>
+                                    {% if customer[18] >= 100 %}
+                                        <span class="revenue-high">QAR {{ "%.0f"|format(customer[18]) }}</span>
+                                    {% elif customer[18] >= 50 %}
+                                        <span class="revenue-medium">QAR {{ "%.0f"|format(customer[18]) }}</span>
+                                    {% else %}
+                                        <span class="revenue-low">QAR {{ "%.0f"|format(customer[18]) }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if customers|length > 100 %}
+                <div class="text-center mt-3">
+                    <p class="text-muted">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Showing first 100 customers out of {{ customers|length }} total customers
+                    </p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
