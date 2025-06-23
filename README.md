@@ -4,6 +4,9 @@
 
 _Enhanced version with regression modeling and comprehensive Azure OpenAI integration_
 
+Vist https://ooredoo-upsell-v2.azurewebsites.net/ to check deployed demo
+
+
 ## 🌟 Overview
 
 Ooredoo Upsell Revenue Predictor V2 is an advanced machine learning application that predicts potential monthly revenue increase from customer upselling opportunities. Unlike traditional classification models, this version uses **regression analysis** to provide precise revenue predictions and comprehensive strategic planning powered by Azure OpenAI.
